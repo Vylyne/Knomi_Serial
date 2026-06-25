@@ -5,12 +5,14 @@
 
 #include "printer/printer.h"
 
-namespace ui {
-namespace overlay {
+namespace ui
+{
+    namespace overlay
+    {
 
-lv_obj_t *init(const printer::State &state);
+        lv_obj_t *init(const printer::State &state);
 
-}
+    }
 }
 
 #endif
