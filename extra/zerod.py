@@ -320,3 +320,7 @@ class ZeroD:
 def load_config(config):
   zerod = ZeroD(config)
   return zerod
+
+def load_config_prefix(config):
+  zerod = ZeroD(config)
+  return zerod
