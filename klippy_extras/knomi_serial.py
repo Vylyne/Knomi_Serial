@@ -253,10 +253,11 @@ class Knomi_Serial:
             chamber_temp, _ = chamber_sensor.get_temp(eventtime)
             
         mcu_temp = 0
+        mcu_target = 0
         if self.config_sensor_mcu:
             mcu_sensor = self.printer.lookup_object(self.config_sensor_mcu, None)
             if mcu_sensor:
-                mcu_temp, _ = mcu_sensor.get_temp(eventtime)
+                mcu_temp, mcu_target = mcu_sensor.get_temp(eventtime)
 
         # Workaround for Danger Klipper.
         if hasattr(self.virtual_sdcard, "progress"):
@@ -279,6 +280,7 @@ class Knomi_Serial:
             chamber_temp=chamber_temp,
             chamber_target=chamber_target,
             mcu_temp=mcu_temp,
+            mcu_target=mcu_target,
             progress=progress,
             tram_type=self.tram_type,
             gcodes=self.gcodes,
@@ -317,6 +319,7 @@ class Knomi_Serial:
         msg += struct.pack("!i", int(state.chamber_temp))
         msg += struct.pack("!i", int(state.chamber_target))
         msg += struct.pack("!i", int(state.mcu_temp))
+        msg += struct.pack("!i", int(state.mcu_target))
         msg += struct.pack("!i", int(state.progress))
         msg += struct.pack("!I", state.tram_type.value)
         msg += state.gcodes + b"\x00" * (_GCODES_MAX_LEN + 1 - len(state.gcodes))

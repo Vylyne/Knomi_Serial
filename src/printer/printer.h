@@ -38,6 +38,7 @@ struct State {
   int32_t chamber_target = 0;
 
   int32_t mcu_temp = 0;
+  int32_t mcu_target = 0;
 
   int32_t progress = 0;
 
