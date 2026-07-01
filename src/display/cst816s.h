@@ -1,14 +1,17 @@
 #ifndef CST816S_H
 #define CST816S_H
 
-namespace display {
-namespace cst816s {
+namespace display
+{
+    namespace cst816s
+    {
 
-void init();
-bool ready();
-bool read(int &x, int &y);
+        void init();
+        bool ready();
+        bool read(int &x, int &y);
+        bool consume_touched();
 
-}
+    }
 }
 
 #endif

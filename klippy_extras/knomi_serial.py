@@ -55,6 +55,8 @@ class PrinterState:
     chamber_temp: float = 0
     chamber_target: float = 0
 
+    mcu_temp: float = 0
+
     progress: float = 0
 
     tram_type: PrinterTramType = PrinterTramType.NONE
@@ -85,15 +87,23 @@ class Knomi_Serial:
 
         self.config_serial = config.get("serial")
 
-        self.config_hotend = config.get("heater_hotend", "extruder")
-        self.config_bed = config.get("heater_bed", "heater_bed")
+        self.config_hotend = config.get("heater_hotend", None)
+        self.config_bed = config.get("heater_bed", None)
 
-        self.config_heater_chamber = config.get("heater_chamber", "")
-        self.config_sensor_chamber = config.get("sensor_chamber", "")
+        self.config_heater_chamber = config.get("heater_chamber", None)
+        self.config_sensor_chamber = config.get("sensor_chamber", None)
         if self.config_heater_chamber and self.config_sensor_chamber:
             raise config.error(
                 "Only one of heater_chamber and sensor_chamber can be specified",
             )
+
+        sensor_mcu = config.get("sensor_mcu", None)
+        if sensor_mcu and not (sensor_mcu.startswith("temperature_sensor") or sensor_mcu.startswith("temperature_fan")):
+            if self.printer.lookup_object(f"temperature_sensor {sensor_mcu}", None):
+                sensor_mcu = f"temperature_sensor {sensor_mcu}"
+            elif self.printer.lookup_object(f"temperature_fan {sensor_mcu}", None):
+                sensor_mcu = f"temperature_fan {sensor_mcu}"
+        self.config_sensor_mcu = sensor_mcu
 
         self.config_move = [
             config.getfloat("move_x", 10.0),
@@ -222,14 +232,17 @@ class Knomi_Serial:
         homed_y = "y" in toolhead_status["homed_axes"]
         homed_z = "z" in toolhead_status["homed_axes"]
 
-        hotend = self.heaters.lookup_heater(self.config_hotend)
-        hotend_temp, hotend_target = hotend.get_temp(eventtime)
+        hotend_temp, hotend_target = 0, 0
+        if self.config_hotend:
+            hotend = self.heaters.lookup_heater(self.config_hotend)
+            hotend_temp, hotend_target = hotend.get_temp(eventtime)
 
-        bed = self.heaters.lookup_heater(self.config_bed)
-        bed_temp, bed_target = bed.get_temp(eventtime)
-
-        chamber_temp = 0
-        chamber_target = 0
+        bed_temp, bed_target = 0, 0
+        if self.config_bed:
+            bed = self.heaters.lookup_heater(self.config_bed)
+            bed_temp, bed_target = bed.get_temp(eventtime)
+        
+        chamber_temp, chamber_target = 0, 0
         if self.config_heater_chamber:
             chamber_heater = self.heaters.lookup_heater(self.config_heater_chamber)
             chamber_temp, chamber_target = chamber_heater.get_temp(eventtime)
@@ -238,6 +251,12 @@ class Knomi_Serial:
                 f"temperature_sensor {self.config_sensor_chamber}",
             )
             chamber_temp, _ = chamber_sensor.get_temp(eventtime)
+            
+        mcu_temp = 0
+        if self.config_sensor_mcu:
+            mcu_sensor = self.printer.lookup_object(self.config_sensor_mcu, None)
+            if mcu_sensor:
+                mcu_temp, _ = mcu_sensor.get_temp(eventtime)
 
         # Workaround for Danger Klipper.
         if hasattr(self.virtual_sdcard, "progress"):
@@ -259,6 +278,7 @@ class Knomi_Serial:
             bed_target=bed_target,
             chamber_temp=chamber_temp,
             chamber_target=chamber_target,
+            mcu_temp=mcu_temp,
             progress=progress,
             tram_type=self.tram_type,
             gcodes=self.gcodes,
@@ -296,6 +316,7 @@ class Knomi_Serial:
         msg += struct.pack("!i", int(state.bed_target))
         msg += struct.pack("!i", int(state.chamber_temp))
         msg += struct.pack("!i", int(state.chamber_target))
+        msg += struct.pack("!i", int(state.mcu_temp))
         msg += struct.pack("!i", int(state.progress))
         msg += struct.pack("!I", state.tram_type.value)
         msg += state.gcodes + b"\x00" * (_GCODES_MAX_LEN + 1 - len(state.gcodes))
