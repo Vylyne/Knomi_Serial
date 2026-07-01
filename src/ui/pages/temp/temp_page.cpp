@@ -54,7 +54,7 @@ namespace ui
       _update_target(_chamber_target, _chamber_temp, state.chamber_target);
     }
 
-    lv_obj_t *_init_temp(lv_obj_t *parent, int y, const char *name, lv_obj_t **label_out = nullptr)
+    lv_obj_t *_init_temp(lv_obj_t *parent, int y, const char *name, lv_obj_t **label_out)
     {
       lv_obj_t *temp = lv_label_create(parent);
       lv_obj_align(temp, LV_ALIGN_LEFT_MID, 125, y);
